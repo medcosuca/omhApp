@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>MCQ Quiz</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+    }
+    .container {
+        width: 100%;
+        max-width: 800px;
+        padding: 20px;
+    }
+    h2, h3 { color: #333; }
+    .hidden { display: none; }
+
+    #chapterList button {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        margin: 8px 0;
+        background: #007BFF;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    #chapterList button:hover { background: #0056b3; }
+
+    .card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .option {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        margin: 8px 0;
+        background: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        transition: all 0.2s;
+    }
+    .option:hover { background: #e2e6ea; }
+    .option.correct { border-color: #28a745; background: #d4edda; }
+    .option.wrong { border-color: #dc3545; background: #f8d7da; }
+    .circle {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        margin-right: 10px;
+    }
+    .circle.correct { background: #28a745; }
+    .circle.wrong { background: #dc3545; }
+
+    .nav-btn {
+        padding: 10px 20px;
+        margin: 5px;
+        background: #007BFF;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .nav-btn:hover { background: #0056b3; }
+
+    #scoreTracker {
+        text-align: right;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="chapterList"></div>
+
+    <div id="quiz" class="hidden">
+        <div id="scoreTracker"></div>
+        <h2 id="chapterTitle"></h2>
+        <div id="questionContainer" class="card"></div>
+        <button id="prevBtn" class="nav-btn">Previous</button>
+        <button id="nextBtn" class="nav-btn">Next</button>
+    </div>
+
+    <div id="result" class="hidden">
+        <h2>Your Score</h2>
+        <p id="scoreText"></p>
+        <button onclick="location.reload()" class="nav-btn">Restart</button>
+    </div>
+</div>
+
+<script src="Omar_MCQ_chapters.js"></script>
+<script>
+let data = window.quizData;
+let currentChapter = null;
+let currentQuestionIndex = 0;
+let score = 0;
+let answeredQuestions = {};
+
+const chapterListDiv = document.getElementById('chapterList');
+const quizDiv = document.getElementById('quiz');
+const resultDiv = document.getElementById('result');
+const chapterTitle = document.getElementById('chapterTitle');
+const questionContainer = document.getElementById('questionContainer');
+const scoreText = document.getElementById('scoreText');
+const scoreTracker = document.getElementById('scoreTracker');
+
+function showChapters() {
+    chapterListDiv.innerHTML = "<h2>Select a Chapter</h2>";
+    data.chapters.forEach((ch, idx) => {
+        const btn = document.createElement('button');
+        btn.textContent = ch.title;
+        btn.onclick = () => startChapter(idx);
+        chapterListDiv.appendChild(btn);
+    });
+}
+
+function startChapter(chapterIndex) {
+    currentChapter = data.chapters[chapterIndex];
+    currentQuestionIndex = 0;
+    score = 0;
+    answeredQuestions = {};
+    chapterListDiv.classList.add('hidden');
+    quizDiv.classList.remove('hidden');
+    chapterTitle.textContent = currentChapter.title;
+    showQuestion();
+}
+
+function showQuestion() {
+    const q = currentChapter.questions[currentQuestionIndex];
+    questionContainer.innerHTML = `<h3>${currentQuestionIndex + 1}. ${q.question}</h3>`;
+    scoreTracker.textContent = `Score: ${score} / ${currentChapter.questions.length}`;
+    q.options.forEach(opt => {
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'option';
+        const circle = document.createElement('div');
+        circle.className = 'circle';
+        optionDiv.appendChild(circle);
+        optionDiv.appendChild(document.createTextNode(opt));
+        optionDiv.onclick = () => checkAnswer(optionDiv, opt, q.answer);
+        questionContainer.appendChild(optionDiv);
+    });
+}
+
+function checkAnswer(optionDiv, selected, correct) {
+    if (answeredQuestions[currentQuestionIndex]) return;
+    const allOptions = document.querySelectorAll('.option');
+    allOptions.forEach(optEl => {
+        const circle = optEl.querySelector('.circle');
+        if (optEl.textContent.startsWith(correct)) {
+            optEl.classList.add('correct');
+            circle.classList.add('correct');
+        }
+        if (optEl === optionDiv && !selected.startsWith(correct)) {
+            optEl.classList.add('wrong');
+            circle.classList.add('wrong');
+        }
+        if (optEl === optionDiv && selected.startsWith(correct)) {
+            score++;
+        }
+    });
+    answeredQuestions[currentQuestionIndex] = true;
+    scoreTracker.textContent = `Score: ${score} / ${currentChapter.questions.length}`;
+}
+
+document.getElementById('nextBtn').onclick = () => {
+    if (currentQuestionIndex < currentChapter.questions.length - 1) {
+        currentQuestionIndex++;
+        showQuestion();
+    } else {
+        endQuiz();
+    }
+};
+
+document.getElementById('prevBtn').onclick = () => {
+    if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        showQuestion();
+    }
+};
+
+function endQuiz() {
+    quizDiv.classList.add('hidden');
+    resultDiv.classList.remove('hidden');
+    scoreText.textContent = `${score} / ${currentChapter.questions.length}`;
+}
+
+showChapters();
+</script>
+</body>
+</html>
